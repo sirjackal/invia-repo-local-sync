@@ -32,11 +32,14 @@ const watchOptions = {
     followSymlinks: false
 };
 
+console.time('initialScan');
 const watcher = chokidar.watch(watchedDirs, watchOptions);
+
 watcher.on('ready', () => {
     watcherReady = true;
     const msg = `Initial scan complete! Watching ${ Intl.NumberFormat().format(watchedFilesCount)} files.`;
     console.log(msg);
+    console.timeEnd('initialScan')
     notify(msg, SEVERITY_INFO);
 });
 
@@ -82,7 +85,9 @@ watcher.on('all', (event, winRelPath) => {
 const copyFile = (srcPath, destPath) => {
 	fs.copyFile(srcPath, destPath, (err) => {
 		if (err) {
-            throw new Error(`File '${srcPath}' copy error: + ${err}`);
+            //throw new Error(`File '${srcPath}' copy error: + ${err}`);
+            console.error(err);
+        	notify('Error: ' + err.toString(), SEVERITY_ERROR);
         } else {
             const msg = `File '${srcPath}' copied OK`;
             console.log(msg);
@@ -94,7 +99,9 @@ const copyFile = (srcPath, destPath) => {
 const deleteFile = (event, filename) => {
 	fs.unlink(filename, (err) => {
 		if (err) {
-			throw new Error(`File '${filename}' delete error: ${err}`);
+			//throw new Error(`File '${filename}' delete error: ${err}`);
+			console.error(err);
+        	notify('Error: ' + err.toString(), SEVERITY_ERROR);
 		} else {
 			const msg = `${event} '${filename}'`;
 			console.log(msg);
