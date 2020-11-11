@@ -64,9 +64,16 @@ watcher.on('all', (event, winRelPath) => {
                 copyFile(winPath, destPath);
                 break;
 
+            case 'addDir':
+            	createDirectory(destPath);
+            	break;
+
             case 'unlink':
+            	deleteFile(destPath);
+            	break;
+
             case 'unlinkDir':
-                deleteFile(event, destPath);
+                deleteDirectory(destPath);
                 break;
 
             default:
@@ -82,11 +89,30 @@ watcher.on('all', (event, winRelPath) => {
     }
 });
 
-const copyFile = (srcPath, destPath) => {
+const createDirectory = (dirname) => {
+	fs.mkdir(dirname, { recursive: true }, (err) => {
+		if (err) {
+			console.error('createDirectory error', err);
+			notify('Error: ' + err.toString(), SEVERITY_ERROR);
+		} else {
+			const msg = `Directory '${dirname}' created OK`;
+            console.log(msg);
+		}
+	});
+};
+
+const copyFile = async (srcPath, destPath) => {
+	await fs.mkdir(path.dirname(destPath), { recursive: true }, (err) => {
+		if (err) {
+			console.error('copyFile error', err);
+			notify('Error: ' + err.toString(), SEVERITY_ERROR);
+		}
+	});
+
 	fs.copyFile(srcPath, destPath, (err) => {
 		if (err) {
             //throw new Error(`File '${srcPath}' copy error: + ${err}`);
-            console.error(err);
+            console.error('copyFile error', err);
         	notify('Error: ' + err.toString(), SEVERITY_ERROR);
         } else {
             const msg = `File '${srcPath}' copied OK`;
@@ -96,14 +122,42 @@ const copyFile = (srcPath, destPath) => {
 	});
 };
 
-const deleteFile = (event, filename) => {
+const deleteFile = async (filename) => {
+	try {
+		await fs.access(filename, fs.constants.W_OK);
+	} catch (err) {
+		console.warn(`File '${filename}' doesn't exist, so it can't be deleted`);
+		return;
+	}
+
 	fs.unlink(filename, (err) => {
 		if (err) {
 			//throw new Error(`File '${filename}' delete error: ${err}`);
-			console.error(err);
+			console.error('deleteFile error', err);
         	notify('Error: ' + err.toString(), SEVERITY_ERROR);
 		} else {
-			const msg = `${event} '${filename}'`;
+			const msg = `File '${filename}' deleted OK`;
+			console.log(msg);
+			//notify(msg, SEVERITY_INFO);
+		}
+	});
+};
+
+const deleteDirectory = async (dirname) => {
+	try {
+		await fs.access(dirname, fs.constants.W_OK);
+	} catch (err) {
+		console.warn(`Directory '${dirname}' doesn't exist, so it can't be deleted`);
+		return;
+	}
+
+	fs.rmdir(dirname, { recursive: true }, (err) => {
+		if (err) {
+			//throw new Error(`File '${filename}' delete error: ${err}`);
+			console.error('deleteDirectory error', err);
+        	notify('Error: ' + err.toString(), SEVERITY_ERROR);
+		} else {
+			const msg = `Directory '${dirname}' deleted OK`;
 			console.log(msg);
 			//notify(msg, SEVERITY_INFO);
 		}
